@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:background="@color/bg_light">
 
-    <!-- Üst Kurumsal Logo, Başlık ve CANLI / TEST Ortam Seçici Barı -->
+    <!-- Üst Kurumsal Logo, Başlık, Güncelleme ve CANLI / TEST Ortam Seçici Barı -->
     <LinearLayout
         android:id="@+id/layoutHeader"
         android:layout_width="match_parent"
@@ -15,14 +15,14 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@color/white"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp"
         android:elevation="3dp">
 
         <ImageView
             android:id="@+id/ivHeaderLogo"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:src="@drawable/ic_launcher"
             android:contentDescription="Kutas Group Logo" />
 
@@ -30,26 +30,45 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginLeft="8dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginLeft="6dp"
+            android:layout_marginStart="6dp"
             android:text="KÜTAŞ GROUP"
             android:textColor="#1E272C"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
+
+        <!-- GÜNCELLE Butonu (GitHub'dan En Son APK'yı İndirir) -->
+        <Button
+            android:id="@+id/btnCheckUpdate"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:layout_marginEnd="4dp"
+            android:layout_marginRight="4dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            android:text="🔄 GÜNCELLE"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:backgroundTint="#0288D1" />
 
         <!-- CANLI / TEST Seçim Rozet Butonu -->
         <Button
             android:id="@+id/btnEnvToggle"
             android:layout_width="wrap_content"
-            android:layout_height="34dp"
+            android:layout_height="32dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
-            android:paddingLeft="10dp"
-            android:paddingRight="10dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
             android:paddingTop="0dp"
             android:paddingBottom="0dp"
             android:text="🟢 CANLI"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:textColor="@color/white"
             android:backgroundTint="#2E7D32" />
