@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnChangeUrl: MaterialButton
     private lateinit var sharedPrefs: SharedPreferences
 
+    // Renkli ve İsimli Alt Bar Butonları
     private lateinit var btnBack: Button
     private lateinit var btnList: Button
     private lateinit var btnLogoff: Button
@@ -44,6 +45,7 @@ class MainActivity : AppCompatActivity() {
         const val KEY_URL = "server_url"
         const val DEFAULT_URL = "http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut2"
 
+        // Zebra DataWedge Broadcast Intent
         const val DATAWEDGE_INTENT_ACTION = "com.kutas.sapterminal.SCAN"
         const val DATAWEDGE_EXTRA_DATA = "com.symbol.datawedge.data_string"
     }
@@ -63,6 +65,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // TC21 / TC26'da ekranın uykuya geçmesini engelle
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableFullScreen()
 
@@ -119,9 +122,10 @@ class MainActivity : AppCompatActivity() {
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
 
+        // SAP ITSmobile'ı mobil ekran genişliğine tam oturt
         settings.useWideViewPort = false
         settings.loadWithOverviewMode = false
-        settings.textZoom = 130
+        settings.textZoom = 130 // Yazı ve kutuları %130 büyüt
         settings.setSupportZoom(true)
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
@@ -144,7 +148,10 @@ class MainActivity : AppCompatActivity() {
                 swipeRefresh.isRefreshing = false
                 cookieManager.flush()
 
+                // Sayfayı ekrana tam yay ve butonları/kutuları büyüt
                 injectSapMobileResponsiveStyles()
+
+                // SAP Çıkış Kontrolü: Çıkış yapıldıysa otomatik giriş ekranına dön
                 checkAndHandleLogoff(url)
             }
 
@@ -178,6 +185,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * SAP Çıkış Ekranını Algılar ve Otomatik Olarak Giriş Sayfasını Yükler
+     */
     private fun checkAndHandleLogoff(url: String?) {
         if (url != null && (url.contains("logoff", ignoreCase = true) ||
                     url.contains("logout", ignoreCase = true) ||
@@ -203,6 +213,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Oturumu sıfırlar ve doğrudan temiz kullanıcı giriş ekranını açar
+     */
     private fun resetSessionAndGoToLogin() {
         val cookieManager = CookieManager.getInstance()
         cookieManager.removeAllCookies {
@@ -214,6 +227,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * SAP ITSmobile ekranını mobil terminal ekranına tam yayar
+     */
     private fun injectSapMobileResponsiveStyles() {
         val js = """
             (function() {
@@ -276,18 +292,21 @@ class MainActivity : AppCompatActivity() {
         btnChangeUrl.setOnClickListener { showUrlConfigDialog() }
     }
 
+    /**
+     * Renkli ve İsimli Alt Tuşların Dinleyicileri
+     */
     private fun setupKeypadListeners() {
-        // 🔴 GERİ (F3)
+        // 🔴 GERİ (SAP F3 - Bir önceki menüye çıkış)
         btnBack.setOnClickListener {
             sendSapKeyOrOkCode(114, "/3")
         }
 
-        // 🟡 LİSTE (F4)
+        // 🟡 LİSTE (SAP F4 - Arama Listesi / Yardım)
         btnList.setOnClickListener {
             sendSapKeyOrOkCode(115, "/4")
         }
 
-        // 🔘 ÇIKIŞ
+        // 🚪 ÇIKIŞ (Oturumu Kapat ve Giriş Ekranına Dön)
         btnLogoff.setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Oturumu Kapat")
@@ -300,7 +319,7 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
 
-        // 🔵 YENİLE
+        // 🔵 YENİLE (Sayfayı tazele / Uzun basınca sunucu adresi değiştir)
         btnReload.setOnClickListener {
             webView.reload()
         }
@@ -309,12 +328,15 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // 🟢 ONAY (ENTER)
+        // 🟢 ONAY / ENTER (Sonraki adıma geç / Kaydet)
         btnEnter.setOnClickListener {
             sendSapKeyOrOkCode(13, "/0")
         }
     }
 
+    /**
+     * SAP ITSmobile'a Fonksiyon Tuşu veya OkCode Gönderme
+     */
     private fun sendSapKeyOrOkCode(keyCode: Int, okCode: String) {
         val js = """
             (function() {
@@ -373,6 +395,25 @@ class MainActivity : AppCompatActivity() {
                         cancelable: true
                     });
                     active.dispatchEvent(enterDown);
+
+                    var enterUp = new KeyboardEvent('keyup', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    active.dispatchEvent(enterUp);
+
+                    // Otomatik Enter / Onay (SAP ITSmobile Form Onayı)
+                    setTimeout(function() {
+                        if (typeof setOkCode === 'function') {
+                            setOkCode('/0');
+                        } else if (active.form) {
+                            active.form.submit();
+                        }
+                    }, 100);
                 }
             })();
         """.trimIndent()
