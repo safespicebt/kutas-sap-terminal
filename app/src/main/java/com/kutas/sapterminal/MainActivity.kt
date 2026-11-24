@@ -33,6 +33,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnChangeUrl: MaterialButton
     private lateinit var sharedPrefs: SharedPreferences
 
+    // Üst Bar Ortam Seçici Butonu (CANLI / TEST)
+    private lateinit var btnEnvToggle: Button
+
     // Renkli ve İsimli Alt Bar Butonları
     private lateinit var btnBack: Button
     private lateinit var btnList: Button
@@ -42,10 +45,13 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val PREFS_NAME = "KutasSapPrefs"
-        const val KEY_URL = "server_url"
-        const val DEFAULT_URL = "http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut2"
+        const val KEY_SELECTED_ENV = "selected_env" // "CANLI" veya "TEST"
+        const val KEY_URL_CANLI = "url_canli"
+        const val KEY_URL_TEST = "url_test"
 
-        // Zebra DataWedge Broadcast Intent
+        const val DEFAULT_URL_CANLI = "http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut2"
+        const val DEFAULT_URL_TEST = "http://10.65.12.67:8000/sap/bc/gui/sap/its/zkut2"
+
         const val DATAWEDGE_INTENT_ACTION = "com.kutas.sapterminal.SCAN"
         const val DATAWEDGE_EXTRA_DATA = "com.symbol.datawedge.data_string"
     }
@@ -77,6 +83,7 @@ class MainActivity : AppCompatActivity() {
         setupKeypadListeners()
         setupBackPressHandler()
 
+        updateEnvButtonUi()
         loadSapUrl()
     }
 
@@ -107,6 +114,8 @@ class MainActivity : AppCompatActivity() {
         tvErrorMessage = findViewById(R.id.tvErrorMessage)
         btnRetry = findViewById(R.id.btnRetry)
         btnChangeUrl = findViewById(R.id.btnChangeUrl)
+
+        btnEnvToggle = findViewById(R.id.btnEnvToggle)
 
         btnBack = findViewById(R.id.btnBack)
         btnList = findViewById(R.id.btnList)
@@ -165,7 +174,7 @@ class MainActivity : AppCompatActivity() {
                     progressBar.visibility = View.GONE
                     swipeRefresh.isRefreshing = false
                     layoutError.visibility = View.VISIBLE
-                    tvErrorMessage.text = "Sunucuya bağlanılamadı (${getCurrentUrl()}).\nLütfen Wi-Fi bağlantısını kontrol edin."
+                    tvErrorMessage.text = "Sunucuya bağlanılamadı (${getCurrentUrl()}).\nLütfen Wi-Fi ve yerel ağ bağlantısını kontrol edin."
                 }
             }
         }
@@ -290,6 +299,63 @@ class MainActivity : AppCompatActivity() {
             loadSapUrl()
         }
         btnChangeUrl.setOnClickListener { showUrlConfigDialog() }
+
+        // Ortam Değiştirme Butonu (CANLI / TEST)
+        btnEnvToggle.setOnClickListener {
+            showEnvironmentSwitchDialog()
+        }
+    }
+
+    /**
+     * CANLI / TEST Ortam Seçim Dialogu
+     */
+    private fun showEnvironmentSwitchDialog() {
+        val currentEnv = getSelectedEnv()
+        val options = arrayOf(
+            "🟢 Canlı Ortam (KTP - 10.65.12.66)",
+            "🟡 Test Ortamı (KTT - 10.65.12.67)",
+            "⚙️ Sunucu Adreslerini Düzenle"
+        )
+        val selectedIndex = if (currentEnv == "CANLI") 0 else 1
+
+        AlertDialog.Builder(this)
+            .setTitle("SAP Ortamı Seçin")
+            .setSingleChoiceItems(options, selectedIndex) { dialog, which ->
+                dialog.dismiss()
+                when (which) {
+                    0 -> switchEnvironment("CANLI")
+                    1 -> switchEnvironment("TEST")
+                    2 -> showUrlConfigDialog()
+                }
+            }
+            .setNegativeButton("İptal", null)
+            .show()
+    }
+
+    private fun switchEnvironment(env: String) {
+        if (getSelectedEnv() == env) {
+            Toast.makeText(this, "Zaten $env ortamındasınız.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        sharedPrefs.edit().putString(KEY_SELECTED_ENV, env).apply()
+        updateEnvButtonUi()
+        resetSessionAndGoToLogin()
+        Toast.makeText(this, "$env ortamına geçildi", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun getSelectedEnv(): String {
+        return sharedPrefs.getString(KEY_SELECTED_ENV, "CANLI") ?: "CANLI"
+    }
+
+    private fun updateEnvButtonUi() {
+        val isCanli = getSelectedEnv() == "CANLI"
+        if (isCanli) {
+            btnEnvToggle.text = "🟢 CANLI"
+            btnEnvToggle.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_green_dark)
+        } else {
+            btnEnvToggle.text = "🟡 TEST"
+            btnEnvToggle.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_orange_dark)
+        }
     }
 
     /**
@@ -431,26 +497,53 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showUrlConfigDialog() {
-        val input = EditText(this)
-        input.setText(getCurrentUrl())
-        input.setSelection(input.text.length)
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(40, 20, 40, 10)
+        }
+
+        val tvCanli = TextView(this).apply { text = "Canlı Ortam URL (10.65.12.66):" }
+        val inputCanli = EditText(this).apply {
+            setText(getUrlForEnv("CANLI"))
+        }
+
+        val tvTest = TextView(this).apply {
+            text = "Test Ortamı URL (10.65.12.67):"
+            setPadding(0, 20, 0, 0)
+        }
+        val inputTest = EditText(this).apply {
+            setText(getUrlForEnv("TEST"))
+        }
+
+        layout.addView(tvCanli)
+        layout.addView(inputCanli)
+        layout.addView(tvTest)
+        layout.addView(inputTest)
 
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.server_url))
-            .setView(input)
-            .setPositiveButton(getString(R.string.save)) { _, _ ->
-                val newUrl = input.text.toString().trim()
-                if (newUrl.isNotEmpty()) {
-                    sharedPrefs.edit().putString(KEY_URL, newUrl).apply()
-                    loadSapUrl()
-                }
+            .setTitle("Sunucu Adreslerini Yapılandır")
+            .setView(layout)
+            .setPositiveButton("Kaydet") { _, _ ->
+                val newCanli = inputCanli.text.toString().trim()
+                val newTest = inputTest.text.toString().trim()
+                if (newCanli.isNotEmpty()) sharedPrefs.edit().putString(KEY_URL_CANLI, newCanli).apply()
+                if (newTest.isNotEmpty()) sharedPrefs.edit().putString(KEY_URL_TEST, newTest).apply()
+                loadSapUrl()
             }
-            .setNegativeButton(getString(R.string.cancel), null)
+            .setNegativeButton("İptal", null)
             .show()
     }
 
+    private fun getUrlForEnv(env: String): String {
+        return if (env == "TEST") {
+            sharedPrefs.getString(KEY_URL_TEST, DEFAULT_URL_TEST) ?: DEFAULT_URL_TEST
+        } else {
+            sharedPrefs.getString(KEY_URL_CANLI, DEFAULT_URL_CANLI) ?: DEFAULT_URL_CANLI
+        }
+    }
+
     private fun getCurrentUrl(): String {
-        return sharedPrefs.getString(KEY_URL, DEFAULT_URL) ?: DEFAULT_URL
+        return getUrlForEnv(getSelectedEnv())
     }
 
     private fun loadSapUrl() {
