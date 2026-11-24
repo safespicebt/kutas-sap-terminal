@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Bitmap
-import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
@@ -16,6 +15,7 @@ import android.widget.*
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -31,14 +31,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvErrorMessage: TextView
     private lateinit var btnRetry: MaterialButton
     private lateinit var btnChangeUrl: MaterialButton
-    private lateinit var btnQuickReload: ImageButton
     private lateinit var sharedPrefs: SharedPreferences
 
-    // SAP Alt Fonksiyon Tuşları (Velocity Tarzı)
-    private lateinit var btnF1: Button
-    private lateinit var btnF2: Button
-    private lateinit var btnF3: Button
-    private lateinit var btnF4: Button
+    private lateinit var btnBack: Button
+    private lateinit var btnList: Button
+    private lateinit var btnLogoff: Button
+    private lateinit var btnReload: Button
     private lateinit var btnEnter: Button
 
     companion object {
@@ -46,7 +44,6 @@ class MainActivity : AppCompatActivity() {
         const val KEY_URL = "server_url"
         const val DEFAULT_URL = "http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut2"
 
-        // Zebra DataWedge Broadcast Intent
         const val DATAWEDGE_INTENT_ACTION = "com.kutas.sapterminal.SCAN"
         const val DATAWEDGE_EXTRA_DATA = "com.symbol.datawedge.data_string"
     }
@@ -66,7 +63,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // TC21 / TC26'da ekranın uykuya geçmesini engelle
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableFullScreen()
 
@@ -75,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         initViews()
         setupWebView()
         setupListeners()
-        setupSapKeypadListeners()
+        setupKeypadListeners()
         setupBackPressHandler()
 
         loadSapUrl()
@@ -108,12 +104,11 @@ class MainActivity : AppCompatActivity() {
         tvErrorMessage = findViewById(R.id.tvErrorMessage)
         btnRetry = findViewById(R.id.btnRetry)
         btnChangeUrl = findViewById(R.id.btnChangeUrl)
-        btnQuickReload = findViewById(R.id.btnQuickReload)
 
-        btnF1 = findViewById(R.id.btnF1)
-        btnF2 = findViewById(R.id.btnF2)
-        btnF3 = findViewById(R.id.btnF3)
-        btnF4 = findViewById(R.id.btnF4)
+        btnBack = findViewById(R.id.btnBack)
+        btnList = findViewById(R.id.btnList)
+        btnLogoff = findViewById(R.id.btnLogoff)
+        btnReload = findViewById(R.id.btnReload)
         btnEnter = findViewById(R.id.btnEnter)
     }
 
@@ -123,11 +118,10 @@ class MainActivity : AppCompatActivity() {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
-        
-        // SAP ITSmobile'ı mobil ekran genişliğine tam oturt
+
         settings.useWideViewPort = false
         settings.loadWithOverviewMode = false
-        settings.textZoom = 130 // Yazı ve butonları %130 büyüt (rahat basılması için)
+        settings.textZoom = 130
         settings.setSupportZoom(true)
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
@@ -149,9 +143,9 @@ class MainActivity : AppCompatActivity() {
                 progressBar.visibility = View.GONE
                 swipeRefresh.isRefreshing = false
                 cookieManager.flush()
-                
-                // Sayfayı ekrana tam yay ve butonları/kutuları büyüt
+
                 injectSapMobileResponsiveStyles()
+                checkAndHandleLogoff(url)
             }
 
             override fun onReceivedError(
@@ -184,10 +178,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * SAP ITSmobile ekranını mobil terminal ekranına tam yayar,
-     * kutuları ve butonları büyük ve dokunulabilir hale getirir.
-     */
+    private fun checkAndHandleLogoff(url: String?) {
+        if (url != null && (url.contains("logoff", ignoreCase = true) ||
+                    url.contains("logout", ignoreCase = true) ||
+                    url.contains("exit", ignoreCase = true))) {
+            resetSessionAndGoToLogin()
+            return
+        }
+
+        val checkJs = """
+            (function() {
+                var text = document.body ? document.body.innerText.toLowerCase() : '';
+                return text.includes('logoff') || 
+                       text.includes('sistemden çıktınız') || 
+                       text.includes('oturum kapatıldı') || 
+                       text.includes('oturum sonlandırıldı');
+            })();
+        """.trimIndent()
+
+        webView.evaluateJavascript(checkJs) { result ->
+            if (result == "true") {
+                resetSessionAndGoToLogin()
+            }
+        }
+    }
+
+    private fun resetSessionAndGoToLogin() {
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.removeAllCookies {
+            cookieManager.flush()
+            webView.clearCache(true)
+            webView.clearHistory()
+            loadSapUrl()
+            Toast.makeText(this, "Giriş ekranına dönüldü", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun injectSapMobileResponsiveStyles() {
         val js = """
             (function() {
@@ -248,27 +274,47 @@ class MainActivity : AppCompatActivity() {
             loadSapUrl()
         }
         btnChangeUrl.setOnClickListener { showUrlConfigDialog() }
-        btnQuickReload.setOnClickListener { webView.reload() }
-        btnQuickReload.setOnLongClickListener {
+    }
+
+    private fun setupKeypadListeners() {
+        // 🔴 GERİ (F3)
+        btnBack.setOnClickListener {
+            sendSapKeyOrOkCode(114, "/3")
+        }
+
+        // 🟡 LİSTE (F4)
+        btnList.setOnClickListener {
+            sendSapKeyOrOkCode(115, "/4")
+        }
+
+        // 🔘 ÇIKIŞ
+        btnLogoff.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Oturumu Kapat")
+                .setMessage("SAP oturumunu kapatıp giriş ekranına dönmek istiyor musunuz?")
+                .setPositiveButton("Evet, Çıkış Yap") { _, _ ->
+                    sendSapKeyOrOkCode(123, "/nex")
+                    resetSessionAndGoToLogin()
+                }
+                .setNegativeButton("İptal", null)
+                .show()
+        }
+
+        // 🔵 YENİLE
+        btnReload.setOnClickListener {
+            webView.reload()
+        }
+        btnReload.setOnLongClickListener {
             showUrlConfigDialog()
             true
         }
+
+        // 🟢 ONAY (ENTER)
+        btnEnter.setOnClickListener {
+            sendSapKeyOrOkCode(13, "/0")
+        }
     }
 
-    /**
-     * Velocity tarzı SAP Alt Fonksiyon Tuşları
-     */
-    private fun setupSapKeypadListeners() {
-        btnF1.setOnClickListener { sendSapKeyOrOkCode(112, "/1") }
-        btnF2.setOnClickListener { sendSapKeyOrOkCode(113, "/2") }
-        btnF3.setOnClickListener { sendSapKeyOrOkCode(114, "/3") }
-        btnF4.setOnClickListener { sendSapKeyOrOkCode(115, "/4") }
-        btnEnter.setOnClickListener { sendSapKeyOrOkCode(13, "/0") }
-    }
-
-    /**
-     * SAP ITSmobile'a Fonksiyon Tuşu veya OkCode Gönderme
-     */
     private fun sendSapKeyOrOkCode(keyCode: Int, okCode: String) {
         val js = """
             (function() {
@@ -338,22 +384,9 @@ class MainActivity : AppCompatActivity() {
     private fun setupBackPressHandler() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (webView.canGoBack()) {
-                    webView.goBack()
-                } else {
-                    showExitDialog()
-                }
+                sendSapKeyOrOkCode(114, "/3")
             }
         })
-    }
-
-    private fun showExitDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("KUTAŞ SAP Terminal")
-            .setMessage(getString(R.string.exit_confirm))
-            .setPositiveButton(getString(R.string.yes)) { _, _ -> finish() }
-            .setNegativeButton(getString(R.string.no), null)
-            .show()
     }
 
     private fun showUrlConfigDialog() {
@@ -386,11 +419,11 @@ class MainActivity : AppCompatActivity() {
     private fun registerBarcodeReceiver() {
         val filter = IntentFilter(DATAWEDGE_INTENT_ACTION)
         filter.addCategory(Intent.CATEGORY_DEFAULT)
-        androidx.core.content.ContextCompat.registerReceiver(
+        ContextCompat.registerReceiver(
             this,
             barcodeReceiver,
             filter,
-            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            ContextCompat.RECEIVER_EXPORTED
         )
     }
 
