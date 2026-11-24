@@ -6,4 +6,11 @@
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
     <color name="bg_light">#F5F5F5</color>
+    
+    <!-- Yeni Buton Renkleri -->
+    <color name="btn_back_red">#D32F2F</color>
+    <color name="btn_list_amber">#F57C00</color>
+    <color name="btn_exit_gray">#455A64</color>
+    <color name="btn_reload_blue">#1976D2</color>
+    <color name="btn_enter_green">#2E7D32</color>
 </resources>
