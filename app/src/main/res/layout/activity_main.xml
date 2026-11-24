@@ -15,7 +15,8 @@
         android:orientation="horizontal"
         android:gravity="center"
         android:background="@color/white"
-        android:paddingHorizontal="12dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
         android:elevation="3dp">
 
         <ImageView
@@ -28,12 +29,12 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
             android:layout_marginStart="10dp"
             android:text="KÜTAŞ GROUP"
             android:textColor="#1E272C"
             android:textSize="17sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.04" />
+            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- Ana WebView Alanı -->
@@ -136,10 +137,6 @@
             android:layout_margin="1dp"
             android:padding="0dp"
             android:minWidth="0dp"
-            app:insetTop="0dp"
-            app:insetBottom="0dp"
-            app:insetLeft="0dp"
-            app:insetRight="0dp"
             android:text="GERİ"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -155,10 +152,6 @@
             android:layout_margin="1dp"
             android:padding="0dp"
             android:minWidth="0dp"
-            app:insetTop="0dp"
-            app:insetBottom="0dp"
-            app:insetLeft="0dp"
-            app:insetRight="0dp"
             android:text="LİSTE"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -174,10 +167,6 @@
             android:layout_margin="1dp"
             android:padding="0dp"
             android:minWidth="0dp"
-            app:insetTop="0dp"
-            app:insetBottom="0dp"
-            app:insetLeft="0dp"
-            app:insetRight="0dp"
             android:text="ÇIKIŞ"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -193,10 +182,6 @@
             android:layout_margin="1dp"
             android:padding="0dp"
             android:minWidth="0dp"
-            app:insetTop="0dp"
-            app:insetBottom="0dp"
-            app:insetLeft="0dp"
-            app:insetRight="0dp"
             android:text="YENİLE"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -212,10 +197,6 @@
             android:layout_margin="1dp"
             android:padding="0dp"
             android:minWidth="0dp"
-            app:insetTop="0dp"
-            app:insetBottom="0dp"
-            app:insetLeft="0dp"
-            app:insetRight="0dp"
             android:text="ONAY"
             android:textSize="12sp"
             android:textStyle="bold"
