@@ -1,13 +1,18 @@
 package com.kutas.sapterminal
 
 import android.annotation.SuppressLint
+import android.app.ProgressDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
 import android.webkit.*
@@ -16,11 +21,18 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
 
@@ -33,7 +45,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnChangeUrl: MaterialButton
     private lateinit var sharedPrefs: SharedPreferences
 
-    // Üst Bar Ortam Seçici Butonu (CANLI / TEST)
+    // Üst Bar Butonları (Güncelleme ve CANLI / TEST)
+    private lateinit var btnCheckUpdate: Button
     private lateinit var btnEnvToggle: Button
 
     // Renkli ve İsimli Alt Bar Butonları
@@ -51,6 +64,9 @@ class MainActivity : AppCompatActivity() {
 
         const val DEFAULT_URL_CANLI = "http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut2"
         const val DEFAULT_URL_TEST = "http://10.65.12.67:8000/sap/bc/gui/sap/its/zkut2"
+
+        // Doğrudan GitHub En Son APK İndirme Bağlantısı
+        const val UPDATE_APK_URL = "https://github.com/safespicebt/kutas-sap-terminal/releases/latest/download/app-debug.apk"
 
         const val DATAWEDGE_INTENT_ACTION = "com.kutas.sapterminal.SCAN"
         const val DATAWEDGE_EXTRA_DATA = "com.symbol.datawedge.data_string"
@@ -115,6 +131,7 @@ class MainActivity : AppCompatActivity() {
         btnRetry = findViewById(R.id.btnRetry)
         btnChangeUrl = findViewById(R.id.btnChangeUrl)
 
+        btnCheckUpdate = findViewById(R.id.btnCheckUpdate)
         btnEnvToggle = findViewById(R.id.btnEnvToggle)
 
         btnBack = findViewById(R.id.btnBack)
@@ -303,6 +320,152 @@ class MainActivity : AppCompatActivity() {
         // Ortam Değiştirme Butonu (CANLI / TEST)
         btnEnvToggle.setOnClickListener {
             showEnvironmentSwitchDialog()
+        }
+
+        // Otomatik Güncelleme Butonu (GitHub'dan Çeker)
+        btnCheckUpdate.setOnClickListener {
+            confirmAndStartUpdate()
+        }
+    }
+
+    /**
+     * Güncelleme Onay Penceresi ve İndirme Başlatma
+     */
+    private fun confirmAndStartUpdate() {
+        AlertDialog.Builder(this)
+            .setTitle("Uygulamayı Güncelle")
+            .setMessage("GitHub üzerindeki en son sürüm otomatik olarak indirilip kurulacak.\n\nDevam etmek istiyor musunuz?")
+            .setPositiveButton("Evet, Güncelle") { _, _ ->
+                checkPermissionsAndDownload()
+            }
+            .setNegativeButton("İptal", null)
+            .show()
+    }
+
+    private fun checkPermissionsAndDownload() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!packageManager.canRequestPackageInstalls()) {
+                AlertDialog.Builder(this)
+                    .setTitle("Yükleme İzni Gerekli")
+                    .setMessage("Uygulamanın kendini güncelleyebilmesi için 'Bilinmeyen uygulamaları yükle' iznini açmanız gerekmektedir.")
+                    .setPositiveButton("Ayarlara Git") { _, _ ->
+                        val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("İptal", null)
+                    .show()
+                return
+            }
+        }
+        downloadAndInstallUpdate()
+    }
+
+    /**
+     * GitHub'dan Doğrudan APK İndirir ve Kurulumu Başlatır
+     */
+    private fun downloadAndInstallUpdate() {
+        val progressDialog = ProgressDialog(this).apply {
+            setTitle("Güncelleme İndiriliyor")
+            setMessage("GitHub'dan en yeni APK indiriliyor, lütfen bekleyin...")
+            setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
+            isIndeterminate = false
+            max = 100
+            setCancelable(false)
+            show()
+        }
+
+        thread {
+            try {
+                var currentUrl = UPDATE_APK_URL
+                var connection: HttpURLConnection
+                var redirectCount = 0
+
+                // GitHub Releases indirme bağlantısı 302 yönlendirmesi yapar, hedef AWS/CDN URL'ini takip et
+                while (true) {
+                    val url = URL(currentUrl)
+                    connection = url.openConnection() as HttpURLConnection
+                    connection.instanceFollowRedirects = false
+                    connection.connect()
+
+                    val responseCode = connection.responseCode
+                    if ((responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                                responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                                responseCode == 307 || responseCode == 308) && redirectCount < 6) {
+                        currentUrl = connection.getHeaderField("Location")
+                        connection.disconnect()
+                        redirectCount++
+                    } else {
+                        break
+                    }
+                }
+
+                val fileLength = connection.contentLength
+                val updateDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                val apkFile = File(updateDir, "KutasSapTerminal_update.apk")
+                if (apkFile.exists()) apkFile.delete()
+
+                val input = BufferedInputStream(connection.inputStream)
+                val output = FileOutputStream(apkFile)
+
+                val data = ByteArray(8192)
+                var total: Long = 0
+                var count: Int
+
+                while (input.read(data).also { count = it } != -1) {
+                    total += count
+                    if (fileLength > 0) {
+                        val progress = ((total * 100) / fileLength).toInt()
+                        runOnUiThread { progressDialog.progress = progress }
+                    }
+                    output.write(data, 0, count)
+                }
+
+                output.flush()
+                output.close()
+                input.close()
+                connection.disconnect()
+
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    launchApkInstaller(apkFile)
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    AlertDialog.Builder(this)
+                        .setTitle("Güncelleme İndirilemedi")
+                        .setMessage("İndirme sırasında bir hata oluştu: ${e.message}\n\nTarayıcı üzerinden indirmek ister misiniz?")
+                        .setPositiveButton("Tarayıcıda Aç") { _, _ ->
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(UPDATE_APK_URL))
+                            startActivity(browserIntent)
+                        }
+                        .setNegativeButton("Kapat", null)
+                        .show()
+                }
+            }
+        }
+    }
+
+    /**
+     * İndirilen APK Dosyasını FileProvider Üzerinden Güvenle Yükletir
+     */
+    private fun launchApkInstaller(file: File) {
+        try {
+            val uri = FileProvider.getUriForFile(
+                this,
+                "$packageName.fileprovider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Yükleme başlatılamadı: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
