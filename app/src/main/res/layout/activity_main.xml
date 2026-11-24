@@ -7,34 +7,52 @@
     android:orientation="vertical"
     android:background="@color/bg_light">
 
-    <!-- Üst Kurumsal Logo ve Başlık Barı (Kütaş Group) -->
+    <!-- Üst Kurumsal Logo, Başlık ve CANLI / TEST Ortam Seçici Barı -->
     <LinearLayout
         android:id="@+id/layoutHeader"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:orientation="horizontal"
-        android:gravity="center"
+        android:gravity="center_vertical"
         android:background="@color/white"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
         android:elevation="3dp">
 
         <ImageView
             android:id="@+id/ivHeaderLogo"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:src="@drawable/ic_launcher"
             android:contentDescription="Kutas Group Logo" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:layout_marginLeft="8dp"
+            android:layout_marginStart="8dp"
             android:text="KÜTAŞ GROUP"
             android:textColor="#1E272C"
-            android:textSize="17sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
+
+        <!-- CANLI / TEST Seçim Rozet Butonu -->
+        <Button
+            android:id="@+id/btnEnvToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            android:text="🟢 CANLI"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:backgroundTint="#2E7D32" />
     </LinearLayout>
 
     <!-- Ana WebView Alanı -->
