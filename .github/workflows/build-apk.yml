@@ -1,44 +1,45 @@
 name: Android APK Build (Zebra SAP Terminal)
+
 on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - name: Depoyu Klonla
       uses: actions/checkout@v4
+
     - name: Java 17 Kurulumu
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
+
+    - name: Android SDK ve Lisans Onayı
+      uses: android-actions/setup-android@v3
+
     - name: Gradle Kurulumu
       uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: '8.2'
-    - name: APK Derle (Otomatik Klasör Tespiti)
-      run: |
-        if [ -f "build.gradle" ]; then
-          echo "Kök dizinde derleniyor..."
-          gradle assembleDebug --stacktrace
-        elif [ -d "ZebraSapTerminal" ]; then
-          echo "ZebraSapTerminal klasöründe derleniyor..."
-          cd ZebraSapTerminal && gradle assembleDebug --stacktrace
-        else
-          echo "build.gradle bulunamadı, arama yapılıyor..."
-          DIR=$(find . -name "build.gradle" -not -path "*/app/*" | head -n 1 | xargs dirname)
-          cd "$DIR" && gradle assembleDebug --stacktrace
-        fi
+
+    - name: APK Derle
+      run: gradle assembleDebug --stacktrace
+
     - name: Hazır APK Dosyasını Yükle (Artifacts)
       uses: actions/upload-artifact@v4
       with:
         name: Kutas-SAP-Zebra-Terminal-APK
-        path: "**/build/outputs/apk/debug/*.apk"
+        path: "app/build/outputs/apk/debug/*.apk"
         retention-days: 30
+
     - name: Otomatik GitHub Release Oluştur
       uses: softprops/action-gh-release@v2
       continue-on-error: true
@@ -47,6 +48,6 @@ jobs:
         tag_name: v1.0.${{ github.run_number }}
         name: KUTAŞ SAP Zebra Terminal v1.0.${{ github.run_number }}
         body: Zebra TC21 / TC25 / TC26 SAP Terminal Hazır APK
-        files: "**/build/outputs/apk/debug/*.apk"
+        files: "app/build/outputs/apk/debug/*.apk"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
