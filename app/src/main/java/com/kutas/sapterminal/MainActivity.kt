@@ -336,16 +336,19 @@ class MainActivity : AppCompatActivity() {
     private fun registerBarcodeReceiver() {
         val filter = IntentFilter(DATAWEDGE_INTENT_ACTION)
         filter.addCategory(Intent.CATEGORY_DEFAULT)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(barcodeReceiver, filter, Context.RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(barcodeReceiver, filter)
-        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            barcodeReceiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+        )
     }
 
     private fun unregisterBarcodeReceiver() {
         try {
             unregisterReceiver(barcodeReceiver)
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            // Yut
+        }
     }
 }
