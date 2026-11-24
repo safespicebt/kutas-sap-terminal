@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">KUTAŞ SAP Terminal</string>
+    <string name="default_sap_url">http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut2</string>
+    <string name="exit_confirm">Uygulamadan çıkmak istediğinize emin misiniz?</string>
+    <string name="yes">Evet</string>
+    <string name="no">Hayır</string>
+    <string name="settings">Ayarlar</string>
+    <string name="server_url">SAP Sunucu Adresi</string>
+    <string name="save">Kaydet</string>
+    <string name="cancel">İptal</string>
+    <string name="reload">Yenile</string>
+</resources>

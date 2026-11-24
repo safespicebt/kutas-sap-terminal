@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Applications>
+    <Application>
+      <General>
+        <Name value="KUTAS_SAP"/>
+        <StartPage value="http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut2"/>
+      </General>
+      <GUI>
+        <!-- Tam ekran kiosk modu: adres çubuğu ve tuşlar gizli -->
+        <AddressBar visibility="Hidden"/>
+        <StatusBar visibility="Hidden"/>
+        <BackButton visibility="Hidden"/>
+        <ForwardButton visibility="Hidden"/>
+        <GoButton visibility="Hidden"/>
+        <HomeButton visibility="Hidden"/>
+        <RefreshButton visibility="Visible"/>
+        <QuitButton visibility="Hidden"/>
+      </GUI>
+      <Scanner>
+        <!-- Barkod tarandığında otomatik Enter bas -->
+        <AutoEnter value="Enabled"/>
+        <AutoTab value="Disabled"/>
+      </Scanner>
+    </Application>
+  </Applications>
+</Configuration>
