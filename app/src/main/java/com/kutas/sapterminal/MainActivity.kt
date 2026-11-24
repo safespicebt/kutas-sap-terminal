@@ -123,8 +123,12 @@ class MainActivity : AppCompatActivity() {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.databaseEnabled = true
-        settings.useWideViewPort = true
-        settings.loadWithOverviewMode = true
+        
+        // SAP ITSmobile'ı mobil ekran genişliğine tam oturt
+        settings.useWideViewPort = false
+        settings.loadWithOverviewMode = false
+        settings.textZoom = 130 // Yazı ve butonları %130 büyüt (rahat basılması için)
+        settings.setSupportZoom(true)
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
         settings.cacheMode = WebSettings.LOAD_DEFAULT
@@ -145,6 +149,9 @@ class MainActivity : AppCompatActivity() {
                 progressBar.visibility = View.GONE
                 swipeRefresh.isRefreshing = false
                 cookieManager.flush()
+                
+                // Sayfayı ekrana tam yay ve butonları/kutuları büyüt
+                injectSapMobileResponsiveStyles()
             }
 
             override fun onReceivedError(
@@ -164,6 +171,9 @@ class MainActivity : AppCompatActivity() {
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                if (newProgress > 60) {
+                    injectSapMobileResponsiveStyles()
+                }
                 if (newProgress < 100) {
                     progressBar.visibility = View.VISIBLE
                     progressBar.progress = newProgress
@@ -172,6 +182,63 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * SAP ITSmobile ekranını mobil terminal ekranına tam yayar,
+     * kutuları ve butonları büyük ve dokunulabilir hale getirir.
+     */
+    private fun injectSapMobileResponsiveStyles() {
+        val js = """
+            (function() {
+                var meta = document.querySelector('meta[name="viewport"]');
+                if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.name = 'viewport';
+                    meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes';
+                    document.head.appendChild(meta);
+                }
+
+                var style = document.getElementById('kutas-mobile-style');
+                if (!style) {
+                    style = document.createElement('style');
+                    style.id = 'kutas-mobile-style';
+                    style.innerHTML = `
+                        html, body {
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            margin: 0 !important;
+                            padding: 4px !important;
+                            font-size: 16px !important;
+                        }
+                        table {
+                            width: 100% !important;
+                            max-width: 100% !important;
+                        }
+                        input, select, textarea, button {
+                            font-size: 16px !important;
+                            box-sizing: border-box !important;
+                        }
+                        input[type="text"], input[type="password"] {
+                            height: 42px !important;
+                            line-height: 42px !important;
+                            border: 1px solid #78909C !important;
+                            border-radius: 4px !important;
+                            padding: 4px 8px !important;
+                            width: 100% !important;
+                        }
+                        input[type="submit"], input[type="button"], button {
+                            min-height: 42px !important;
+                            padding: 6px 14px !important;
+                            border-radius: 4px !important;
+                            font-weight: bold !important;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(js, null)
     }
 
     private fun setupListeners() {
@@ -192,19 +259,10 @@ class MainActivity : AppCompatActivity() {
      * Velocity tarzı SAP Alt Fonksiyon Tuşları
      */
     private fun setupSapKeypadListeners() {
-        // F1 (Yardım / Help)
         btnF1.setOnClickListener { sendSapKeyOrOkCode(112, "/1") }
-
-        // F2
         btnF2.setOnClickListener { sendSapKeyOrOkCode(113, "/2") }
-
-        // F3 (GERİ - SAP'de bir önceki menüye çıkış)
         btnF3.setOnClickListener { sendSapKeyOrOkCode(114, "/3") }
-
-        // F4 (Liste / Arama Yardımı)
         btnF4.setOnClickListener { sendSapKeyOrOkCode(115, "/4") }
-
-        // ENTER (Onay / Gönder)
         btnEnter.setOnClickListener { sendSapKeyOrOkCode(13, "/0") }
     }
 
@@ -214,12 +272,10 @@ class MainActivity : AppCompatActivity() {
     private fun sendSapKeyOrOkCode(keyCode: Int, okCode: String) {
         val js = """
             (function() {
-                // 1. Standart ITSmobile OkCode fonksiyonu varsa çağır
                 if (typeof setOkCode === 'function') {
                     setOkCode('$okCode');
                     return;
                 }
-                // 2. OkCode input alanını bul ve gönder
                 var okInput = document.querySelector('input[name="~OkCode"]') || document.querySelector('input[name="okcode"]');
                 if (okInput) {
                     okInput.value = '$okCode';
@@ -228,7 +284,6 @@ class MainActivity : AppCompatActivity() {
                         return;
                     }
                 }
-                // 3. Klavye Olayını Simüle Et
                 var target = document.activeElement || document.body;
                 var evt = new KeyboardEvent('keydown', {
                     key: '$okCode',
@@ -272,10 +327,6 @@ class MainActivity : AppCompatActivity() {
                         cancelable: true
                     });
                     active.dispatchEvent(enterDown);
-                    
-                    if (active.form) {
-                        // Eğer ITSmobile'da doğrudan form submit varsa
-                    }
                 }
             })();
         """.trimIndent()
@@ -287,7 +338,6 @@ class MainActivity : AppCompatActivity() {
     private fun setupBackPressHandler() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // Geri tuşuna basıldığında SAP'de F3 (Geri) gönder veya çıkış sor
                 if (webView.canGoBack()) {
                     webView.goBack()
                 } else {
