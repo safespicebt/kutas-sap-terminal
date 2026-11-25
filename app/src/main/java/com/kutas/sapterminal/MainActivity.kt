@@ -15,6 +15,7 @@ import android.os.Environment
 import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.webkit.*
 import android.widget.*
 import androidx.activity.OnBackPressedCallback
@@ -107,6 +108,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         enableFullScreen()
         registerBarcodeReceiver()
+        hideKeyboard()
     }
 
     override fun onPause() {
@@ -120,6 +122,19 @@ class MainActivity : AppCompatActivity() {
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    }
+
+    /**
+     * TC21 Ekranını Kaplayan Sanal Klavyeyi Anında Kapatır
+     */
+    private fun hideKeyboard() {
+        try {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            val v = currentFocus ?: window.decorView
+            imm?.hideSoftInputFromWindow(v.windowToken, 0)
+        } catch (e: Exception) {
+            // Yut
+        }
     }
 
     private fun initViews() {
@@ -166,6 +181,7 @@ class MainActivity : AppCompatActivity() {
                 super.onPageStarted(view, url, favicon)
                 progressBar.visibility = View.VISIBLE
                 layoutError.visibility = View.GONE
+                hideKeyboard()
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -179,6 +195,8 @@ class MainActivity : AppCompatActivity() {
 
                 // SAP Çıkış Kontrolü: Çıkış yapıldıysa otomatik giriş ekranına dön
                 checkAndHandleLogoff(url)
+
+                hideKeyboard()
             }
 
             override fun onReceivedError(
@@ -304,6 +322,29 @@ class MainActivity : AppCompatActivity() {
                     `;
                     document.head.appendChild(style);
                 }
+
+                // Otomatik Ekle Dinleyicisi (Barkod lazeri Enter bastığında ekranda Ekle varsa ona tıklar)
+                if (!window.kutasAutoEkleHook) {
+                    window.kutasAutoEkleHook = true;
+                    document.addEventListener('keydown', function(e) {
+                        if (e.keyCode === 13 || e.key === 'Enter') {
+                            var buttons = document.querySelectorAll('input[type="button"], input[type="submit"], button, a.MobileButton, a');
+                            for (var i = 0; i < buttons.length; i++) {
+                                var b = buttons[i];
+                                var text = (b.value || b.innerText || b.getAttribute('title') || '').trim().toLowerCase();
+                                if (text === 'ekle' || text.indexOf('ekle') !== -1 || text === 'add') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                                        document.activeElement.blur();
+                                    }
+                                    setTimeout(function() { b.click(); }, 60);
+                                    return false;
+                                }
+                            }
+                        }
+                    }, true);
+                }
             })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)
@@ -319,11 +360,13 @@ class MainActivity : AppCompatActivity() {
 
         // Ortam Değiştirme Butonu (CANLI / TEST)
         btnEnvToggle.setOnClickListener {
+            hideKeyboard()
             showEnvironmentSwitchDialog()
         }
 
         // Otomatik Güncelleme Butonu (GitHub'dan Çeker)
         btnCheckUpdate.setOnClickListener {
+            hideKeyboard()
             confirmAndStartUpdate()
         }
     }
@@ -527,16 +570,19 @@ class MainActivity : AppCompatActivity() {
     private fun setupKeypadListeners() {
         // 🔴 GERİ (SAP F3 - Bir önceki menüye çıkış)
         btnBack.setOnClickListener {
+            hideKeyboard()
             sendSapKeyOrOkCode(114, "/3")
         }
 
         // 🟡 LİSTE (SAP F4 - Arama Listesi / Yardım)
         btnList.setOnClickListener {
+            hideKeyboard()
             sendSapKeyOrOkCode(115, "/4")
         }
 
         // 🚪 ÇIKIŞ (Oturumu Kapat ve Giriş Ekranına Dön)
         btnLogoff.setOnClickListener {
+            hideKeyboard()
             AlertDialog.Builder(this)
                 .setTitle("Oturumu Kapat")
                 .setMessage("SAP oturumunu kapatıp giriş ekranına dönmek istiyor musunuz?")
@@ -550,15 +596,18 @@ class MainActivity : AppCompatActivity() {
 
         // 🔵 YENİLE (Sayfayı tazele / Uzun basınca sunucu adresi değiştir)
         btnReload.setOnClickListener {
+            hideKeyboard()
             webView.reload()
         }
         btnReload.setOnLongClickListener {
+            hideKeyboard()
             showUrlConfigDialog()
             true
         }
 
         // 🟢 ONAY / ENTER (Sonraki adıma geç / Kaydet)
         btnEnter.setOnClickListener {
+            hideKeyboard()
             sendSapKeyOrOkCode(13, "/0")
         }
     }
@@ -569,6 +618,9 @@ class MainActivity : AppCompatActivity() {
     private fun sendSapKeyOrOkCode(keyCode: Int, okCode: String) {
         val js = """
             (function() {
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
                 if (typeof setOkCode === 'function') {
                     setOkCode('$okCode');
                     return;
@@ -635,25 +687,43 @@ class MainActivity : AppCompatActivity() {
                     });
                     active.dispatchEvent(enterUp);
 
-                    // Otomatik Enter / Onay (SAP ITSmobile Form Onayı)
+                    // Depo Palet/Koli Otomasyonu: Ekranda "EKLE" butonu varsa otomatik tıkla
                     setTimeout(function() {
-                        if (typeof setOkCode === 'function') {
-                            setOkCode('/0');
-                        } else if (active.form) {
-                            active.form.submit();
+                        var buttons = document.querySelectorAll('input[type="button"], input[type="submit"], button, a.MobileButton, a');
+                        var ekleBtn = null;
+                        for (var i = 0; i < buttons.length; i++) {
+                            var b = buttons[i];
+                            var text = (b.value || b.innerText || b.getAttribute('title') || '').trim().toLowerCase();
+                            if (text === 'ekle' || text.indexOf('ekle') !== -1 || text === 'add') {
+                                ekleBtn = b;
+                                break;
+                            }
                         }
-                    }, 100);
+
+                        if (ekleBtn) {
+                            if (active && typeof active.blur === 'function') active.blur();
+                            ekleBtn.click();
+                        } else {
+                            if (typeof setOkCode === 'function') {
+                                setOkCode('/0');
+                            } else if (active.form) {
+                                active.form.submit();
+                            }
+                        }
+                    }, 120);
                 }
             })();
         """.trimIndent()
 
         webView.evaluateJavascript(js, null)
+        hideKeyboard()
         Toast.makeText(this, "Okundu: $barcode", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupBackPressHandler() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                hideKeyboard()
                 sendSapKeyOrOkCode(114, "/3")
             }
         })
