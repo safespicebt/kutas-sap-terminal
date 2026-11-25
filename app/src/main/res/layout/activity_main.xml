@@ -9,7 +9,7 @@
     android:focusableInTouchMode="true"
     android:background="@color/bg_light">
 
-    <!-- Üst Kurumsal Logo, Başlık, Güncelleme ve CANLI / TEST Ortam Seçici Barı -->
+    <!-- Üst Kurumsal Logo, Başlık, Sürüm No, Güncelleme ve CANLI / TEST Ortam Seçici Barı -->
     <LinearLayout
         android:id="@+id/layoutHeader"
         android:layout_width="match_parent"
@@ -28,16 +28,32 @@
             android:src="@drawable/ic_launcher"
             android:contentDescription="Kutas Group Logo" />
 
-        <TextView
+        <!-- Şirket Başlığı ve Sürüm Numarası Alanı -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginLeft="6dp"
             android:layout_marginStart="6dp"
-            android:text="KÜTAŞ GROUP"
-            android:textColor="#1E272C"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="KÜTAŞ GROUP"
+                android:textColor="#1E272C"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvAppVersion"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="v1.0.0"
+                android:textColor="#78909C"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <!-- GÜNCELLE Butonu (GitHub'dan En Son APK'yı İndirir) -->
         <Button
