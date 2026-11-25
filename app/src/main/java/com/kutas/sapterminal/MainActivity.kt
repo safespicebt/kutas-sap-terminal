@@ -46,7 +46,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnChangeUrl: MaterialButton
     private lateinit var sharedPrefs: SharedPreferences
 
-    // Üst Bar Butonları (Güncelleme ve CANLI / TEST)
+    // Üst Bar Butonları ve Sürüm Göstergesi
+    private var tvAppVersion: TextView? = null
     private lateinit var btnCheckUpdate: Button
     private lateinit var btnEnvToggle: Button
 
@@ -130,10 +131,30 @@ class MainActivity : AppCompatActivity() {
     private fun hideKeyboard() {
         try {
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            val v = currentFocus ?: window.decorView
-            imm?.hideSoftInputFromWindow(v.windowToken, 0)
+            val v = currentFocus ?: window?.decorView
+            val token = v?.windowToken
+            if (imm != null && token != null) {
+                imm.hideSoftInputFromWindow(token, 0)
+            }
         } catch (e: Exception) {
             // Yut
+        }
+    }
+
+    /**
+     * Uygulamanın Yüklü Olduğu Sürüm Numarasını Getirir (Örn: 1.0.26)
+     */
+    private fun getAppVersionName(): String {
+        return try {
+            val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0)
+            }
+            pInfo.versionName ?: "1.0.0"
+        } catch (e: Exception) {
+            "1.0.0"
         }
     }
 
@@ -145,6 +166,9 @@ class MainActivity : AppCompatActivity() {
         tvErrorMessage = findViewById(R.id.tvErrorMessage)
         btnRetry = findViewById(R.id.btnRetry)
         btnChangeUrl = findViewById(R.id.btnChangeUrl)
+
+        tvAppVersion = findViewById(R.id.tvAppVersion)
+        tvAppVersion?.text = "v${getAppVersionName()}"
 
         btnCheckUpdate = findViewById(R.id.btnCheckUpdate)
         btnEnvToggle = findViewById(R.id.btnEnvToggle)
@@ -377,7 +401,7 @@ class MainActivity : AppCompatActivity() {
     private fun confirmAndStartUpdate() {
         AlertDialog.Builder(this)
             .setTitle("Uygulamayı Güncelle")
-            .setMessage("GitHub üzerindeki en son sürüm otomatik olarak indirilip kurulacak.\n\nDevam etmek istiyor musunuz?")
+            .setMessage("Mevcut Sürüm: v${getAppVersionName()}\n\nGitHub üzerindeki en son sürüm otomatik olarak indirilip kurulacak.\n\nDevam etmek istiyor musunuz?")
             .setPositiveButton("Evet, Güncelle") { _, _ ->
                 checkPermissionsAndDownload()
             }
