@@ -60,12 +60,14 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val PREFS_NAME = "KutasSapPrefs"
-        const val KEY_SELECTED_ENV = "selected_env" // "CANLI" veya "TEST"
+        const val KEY_SELECTED_ENV = "selected_env" // "CANLI", "TEST" veya "TGT"
         const val KEY_URL_CANLI = "url_canli"
         const val KEY_URL_TEST = "url_test"
+        const val KEY_URL_TGT = "url_tgt"
 
         const val DEFAULT_URL_CANLI = "http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut2"
         const val DEFAULT_URL_TEST = "http://10.65.12.67:8000/sap/bc/gui/sap/its/zkut2"
+        const val DEFAULT_URL_TGT = "http://10.65.12.66:8000/sap/bc/gui/sap/its/zkut/?sap-client=100"
 
         // Doğrudan GitHub En Son APK İndirme Bağlantısı
         const val UPDATE_APK_URL = "https://github.com/safespicebt/kutas-sap-terminal/releases/latest/download/app-debug.apk"
@@ -382,7 +384,7 @@ class MainActivity : AppCompatActivity() {
         }
         btnChangeUrl.setOnClickListener { showUrlConfigDialog() }
 
-        // Ortam Değiştirme Butonu (CANLI / TEST)
+        // Ortam Değiştirme Butonu (CANLI / TEST / TGT)
         btnEnvToggle.setOnClickListener {
             hideKeyboard()
             showEnvironmentSwitchDialog()
@@ -537,16 +539,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * CANLI / TEST Ortam Seçim Dialogu
+     * CANLI / TEST / TGT Ortam Seçim Dialogu
      */
     private fun showEnvironmentSwitchDialog() {
         val currentEnv = getSelectedEnv()
         val options = arrayOf(
-            "🟢 Canlı Ortam (KTP - 10.65.12.66)",
+            "🟢 Canlı Ortam (KTP - zkut2)",
             "🟡 Test Ortamı (KTT - 10.65.12.67)",
+            "🔵 TGT (Turgutlu - zkut)",
             "⚙️ Sunucu Adreslerini Düzenle"
         )
-        val selectedIndex = if (currentEnv == "CANLI") 0 else 1
+        val selectedIndex = when (currentEnv) {
+            "TEST" -> 1
+            "TGT" -> 2
+            else -> 0
+        }
 
         AlertDialog.Builder(this)
             .setTitle("SAP Ortamı Seçin")
@@ -555,7 +562,8 @@ class MainActivity : AppCompatActivity() {
                 when (which) {
                     0 -> switchEnvironment("CANLI")
                     1 -> switchEnvironment("TEST")
-                    2 -> showUrlConfigDialog()
+                    2 -> switchEnvironment("TGT")
+                    3 -> showUrlConfigDialog()
                 }
             }
             .setNegativeButton("İptal", null)
@@ -578,13 +586,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateEnvButtonUi() {
-        val isCanli = getSelectedEnv() == "CANLI"
-        if (isCanli) {
-            btnEnvToggle.text = "🟢 CANLI"
-            btnEnvToggle.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_green_dark)
-        } else {
-            btnEnvToggle.text = "🟡 TEST"
-            btnEnvToggle.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_orange_dark)
+        when (getSelectedEnv()) {
+            "TEST" -> {
+                btnEnvToggle.text = "🟡 TEST"
+                btnEnvToggle.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_orange_dark)
+            }
+            "TGT" -> {
+                btnEnvToggle.text = "🔵 TGT"
+                btnEnvToggle.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_blue_dark)
+            }
+            else -> {
+                btnEnvToggle.text = "🟢 CANLI"
+                btnEnvToggle.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_green_dark)
+            }
         }
     }
 
@@ -772,10 +786,20 @@ class MainActivity : AppCompatActivity() {
             setText(getUrlForEnv("TEST"))
         }
 
+        val tvTgt = TextView(this).apply {
+            text = "TGT Ortamı URL (Turgutlu):"
+            setPadding(0, 20, 0, 0)
+        }
+        val inputTgt = EditText(this).apply {
+            setText(getUrlForEnv("TGT"))
+        }
+
         layout.addView(tvCanli)
         layout.addView(inputCanli)
         layout.addView(tvTest)
         layout.addView(inputTest)
+        layout.addView(tvTgt)
+        layout.addView(inputTgt)
 
         AlertDialog.Builder(this)
             .setTitle("Sunucu Adreslerini Yapılandır")
@@ -783,8 +807,10 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("Kaydet") { _, _ ->
                 val newCanli = inputCanli.text.toString().trim()
                 val newTest = inputTest.text.toString().trim()
+                val newTgt = inputTgt.text.toString().trim()
                 if (newCanli.isNotEmpty()) sharedPrefs.edit().putString(KEY_URL_CANLI, newCanli).apply()
                 if (newTest.isNotEmpty()) sharedPrefs.edit().putString(KEY_URL_TEST, newTest).apply()
+                if (newTgt.isNotEmpty()) sharedPrefs.edit().putString(KEY_URL_TGT, newTgt).apply()
                 loadSapUrl()
             }
             .setNegativeButton("İptal", null)
@@ -792,10 +818,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getUrlForEnv(env: String): String {
-        return if (env == "TEST") {
-            sharedPrefs.getString(KEY_URL_TEST, DEFAULT_URL_TEST) ?: DEFAULT_URL_TEST
-        } else {
-            sharedPrefs.getString(KEY_URL_CANLI, DEFAULT_URL_CANLI) ?: DEFAULT_URL_CANLI
+        return when (env) {
+            "TEST" -> sharedPrefs.getString(KEY_URL_TEST, DEFAULT_URL_TEST) ?: DEFAULT_URL_TEST
+            "TGT" -> sharedPrefs.getString(KEY_URL_TGT, DEFAULT_URL_TGT) ?: DEFAULT_URL_TGT
+            else -> sharedPrefs.getString(KEY_URL_CANLI, DEFAULT_URL_CANLI) ?: DEFAULT_URL_CANLI
         }
     }
 
