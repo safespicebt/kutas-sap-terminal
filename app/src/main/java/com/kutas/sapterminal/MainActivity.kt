@@ -193,6 +193,7 @@ class MainActivity : AppCompatActivity() {
         settings.useWideViewPort = false
         settings.loadWithOverviewMode = false
         settings.textZoom = 105 // Yazı ve kutuları dengeli büyüt (buton taşmasını önler)
+        settings.textZoom = 120 // Yazı ve butonları parmakla dokunmaya uygun büyüt
         settings.setSupportZoom(true)
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
@@ -323,6 +324,7 @@ class MainActivity : AppCompatActivity() {
                             padding: 8px 12px !important;
                             box-sizing: border-box !important;
                             font-size: 15px !important;
+                            font-size: 17px !important;
                         }
                         div, form, table {
                             max-width: 100% !important;
@@ -333,12 +335,15 @@ class MainActivity : AppCompatActivity() {
                         }
                         input, select, textarea, button {
                             font-size: 15px !important;
+                            font-size: 17px !important;
                             box-sizing: border-box !important;
                             max-width: 100% !important;
                         }
                         input[type="text"], input[type="password"] {
                             height: 42px !important;
                             line-height: 42px !important;
+                            height: 46px !important;
+                            line-height: 46px !important;
                             border: 1px solid #78909C !important;
                             border-radius: 4px !important;
                             padding: 4px 10px !important;
@@ -347,10 +352,13 @@ class MainActivity : AppCompatActivity() {
                         input[type="submit"], input[type="button"], button {
                             width: auto !important;
                             min-width: 140px !important;
+                            min-width: 160px !important;
                             max-width: 100% !important;
                             min-height: 44px !important;
+                            min-height: 48px !important;
                             height: auto !important;
                             padding: 8px 16px !important;
+                            padding: 10px 18px !important;
                             white-space: normal !important;
                             overflow: visible !important;
                             border-radius: 6px !important;
