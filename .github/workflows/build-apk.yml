@@ -31,7 +31,7 @@ jobs:
         gradle-version: '8.2'
 
     - name: APK Derle
-      run: gradle assembleDebug --stacktrace
+      run: gradle assembleDebug -PversionCode=${{ github.run_number }} -PversionName=1.0.${{ github.run_number }} --stacktrace
 
     - name: Hazır APK Dosyasını Yükle (Artifacts)
       uses: actions/upload-artifact@v4
