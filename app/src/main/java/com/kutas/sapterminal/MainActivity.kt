@@ -192,7 +192,7 @@ class MainActivity : AppCompatActivity() {
         // SAP ITSmobile'ı mobil ekran genişliğine tam oturt
         settings.useWideViewPort = false
         settings.loadWithOverviewMode = false
-        settings.textZoom = 130 // Yazı ve kutuları %130 büyüt
+        settings.textZoom = 105 // Yazı ve kutuları dengeli büyüt (buton taşmasını önler)
         settings.setSupportZoom(true)
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
@@ -320,29 +320,40 @@ class MainActivity : AppCompatActivity() {
                             width: 100% !important;
                             max-width: 100vw !important;
                             margin: 0 !important;
-                            padding: 4px !important;
-                            font-size: 16px !important;
+                            padding: 8px 12px !important;
+                            box-sizing: border-box !important;
+                            font-size: 15px !important;
+                        }
+                        div, form, table {
+                            max-width: 100% !important;
+                            box-sizing: border-box !important;
                         }
                         table {
                             width: 100% !important;
-                            max-width: 100% !important;
                         }
                         input, select, textarea, button {
-                            font-size: 16px !important;
+                            font-size: 15px !important;
                             box-sizing: border-box !important;
+                            max-width: 100% !important;
                         }
                         input[type="text"], input[type="password"] {
                             height: 42px !important;
                             line-height: 42px !important;
                             border: 1px solid #78909C !important;
                             border-radius: 4px !important;
-                            padding: 4px 8px !important;
+                            padding: 4px 10px !important;
                             width: 100% !important;
                         }
                         input[type="submit"], input[type="button"], button {
-                            min-height: 42px !important;
-                            padding: 6px 14px !important;
-                            border-radius: 4px !important;
+                            width: auto !important;
+                            min-width: 140px !important;
+                            max-width: 100% !important;
+                            min-height: 44px !important;
+                            height: auto !important;
+                            padding: 8px 16px !important;
+                            white-space: normal !important;
+                            overflow: visible !important;
+                            border-radius: 6px !important;
                             font-weight: bold !important;
                         }
                     `;
@@ -384,7 +395,7 @@ class MainActivity : AppCompatActivity() {
         }
         btnChangeUrl.setOnClickListener { showUrlConfigDialog() }
 
-        // Ortam Değiştirme Butonu (CANLI / TEST / TGT)
+        // Ortam Değiştirme Butonu (CANLI / TEST)
         btnEnvToggle.setOnClickListener {
             hideKeyboard()
             showEnvironmentSwitchDialog()
