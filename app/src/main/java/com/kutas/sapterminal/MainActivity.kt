@@ -192,7 +192,7 @@ class MainActivity : AppCompatActivity() {
         // SAP ITSmobile'ı mobil ekran genişliğine tam oturt
         settings.useWideViewPort = false
         settings.loadWithOverviewMode = false
-        settings.textZoom = 120 // Yazı ve butonları parmakla dokunmaya uygun büyüt
+        settings.textZoom = 100 // Standart dengeli yazı ölçeği
         settings.setSupportZoom(true)
         settings.builtInZoomControls = true
         settings.displayZoomControls = false
@@ -320,9 +320,9 @@ class MainActivity : AppCompatActivity() {
                             width: 100% !important;
                             max-width: 100vw !important;
                             margin: 0 !important;
-                            padding: 8px 12px !important;
+                            padding: 6px 10px !important;
                             box-sizing: border-box !important;
-                            font-size: 17px !important;
+                            font-size: 14px !important;
                         }
                         div, form, table {
                             max-width: 100% !important;
@@ -332,25 +332,28 @@ class MainActivity : AppCompatActivity() {
                             width: 100% !important;
                         }
                         input, select, textarea, button {
-                            font-size: 17px !important;
+                            font-size: 14px !important;
                             box-sizing: border-box !important;
                             max-width: 100% !important;
                         }
-                        input[type="text"], input[type="password"] {
-                            height: 46px !important;
-                            line-height: 46px !important;
+                        input[type="text"], input[type="password"], input:not([type]), select, textarea {
+                            display: block !important;
+                            height: 40px !important;
+                            line-height: 40px !important;
                             border: 1px solid #78909C !important;
                             border-radius: 4px !important;
                             padding: 4px 10px !important;
+                            margin-top: 4px !important;
+                            margin-bottom: 6px !important;
                             width: 100% !important;
                         }
                         input[type="submit"], input[type="button"], button {
                             width: auto !important;
-                            min-width: 160px !important;
+                            min-width: 130px !important;
                             max-width: 100% !important;
-                            min-height: 48px !important;
+                            min-height: 42px !important;
                             height: auto !important;
-                            padding: 10px 18px !important;
+                            padding: 8px 14px !important;
                             white-space: normal !important;
                             overflow: visible !important;
                             border-radius: 6px !important;
@@ -358,6 +361,30 @@ class MainActivity : AppCompatActivity() {
                         }
                     `;
                     document.head.appendChild(style);
+                }
+
+                // Etiket (Örn: Terminal No) üstte, doldurulacak kutu hemen altında tam genişlikte olsun
+                var rows = document.querySelectorAll('tr');
+                for (var r = 0; r < rows.length; r++) {
+                    var tr = rows[r];
+                    if (tr.dataset && tr.dataset.kutasStacked) continue;
+                    var hasEditable = tr.querySelector('input[type="text"], input[type="password"], input:not([type]), select, textarea');
+                    if (hasEditable && tr.cells && tr.cells.length >= 2) {
+                        tr.style.display = 'block';
+                        tr.style.width = '100%';
+                        tr.style.marginBottom = '6px';
+                        for (var c = 0; c < tr.cells.length; c++) {
+                            var cell = tr.cells[c];
+                            cell.style.display = 'block';
+                            cell.style.width = '100%';
+                            cell.style.textAlign = 'left';
+                            cell.style.padding = '2px 0';
+                            if (!cell.querySelector('input, select, textarea, button')) {
+                                cell.style.fontWeight = '600';
+                            }
+                        }
+                        if (tr.dataset) tr.dataset.kutasStacked = '1';
+                    }
                 }
 
                 // Otomatik Ekle Dinleyicisi (Barkod lazeri Enter bastığında ekranda Ekle varsa ona tıklar)
